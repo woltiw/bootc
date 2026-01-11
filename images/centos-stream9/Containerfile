@@ -1,0 +1,47 @@
+ARG BASE_IMAGE
+ARG BASE_TAG
+FROM ${BASE_IMAGE}:${BASE_TAG} as initial
+
+RUN dnf install -y epel-release dnf-plugins-core \
+  && dnf config-manager --enable crb \
+  && dnf clean all
+
+RUN mkdir -p /etc/skel/.bashrc.d
+
+RUN curl -sSLf -o /tmp/starship.tar.gz https://github.com/starship/starship/releases/latest/download/starship-x86_64-unknown-linux-gnu.tar.gz
+RUN tar -xf /tmp/starship.tar.gz starship --to-stdout > /usr/local/bin/starship
+RUN chmod +x /usr/local/bin/starship
+RUN /usr/local/bin/starship init bash --print-full-init > /etc/skel/.bashrc.d/starhsip.sh
+
+RUN dnf install -y git-core make
+RUN git clone --recursive --depth 1 --shallow-submodules https://github.com/akinomyoga/ble.sh.git
+RUN make -C ble.sh install PREFIX=/usr/local/
+RUN echo 'source -- /usr/local/share/blesh/ble.sh' > /etc/skel/.bashrc.d/blesh.sh
+
+RUN dnf install -y fzf
+RUN fzf --bash > /etc/skel/.bashrc.d/fzf.sh
+
+FROM ${BASE_IMAGE}:${BASE_TAG}
+
+COPY --chown=root:root --chmod=0755 --from=initial /usr/local/bin/* /usr/local/bin/
+COPY --chown=root:root --chmod=0755 --from=initial /usr/local/share /usr/local/share
+COPY --chown=root:root --from=initial /etc/skel/.bashrc.d/ /root/.bashrc.d/
+COPY --chown=root:root --from=initial /etc/skel/.bashrc.d/ /etc/skel/.bashrc.d/
+
+RUN dnf install -y epel-release dnf-plugins-core \
+  && dnf config-manager --enable crb \
+  && dnf clean all
+
+RUN dnf install -y \
+  bat \
+  binutils \
+  cloud-init \
+  fzf \
+  less \
+  nmstate \
+  pciutils \
+  qemu-guest-agent \
+  sudo \
+  vim \
+  yq \
+  && dnf clean all
