@@ -45,3 +45,5 @@ RUN dnf install -y \
   vim \
   yq \
   && dnf clean all
+
+RUN echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
