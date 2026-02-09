@@ -7,6 +7,7 @@ RUN dnf install -y epel-release dnf-plugins-core \
   && dnf clean all
 
 RUN mkdir -p /etc/skel/.bashrc.d
+COPY aliases.sh /etc/skel/.bashrc.d/aliases.sh
 
 RUN curl -sSLf -o /tmp/starship.tar.gz https://github.com/starship/starship/releases/latest/download/starship-x86_64-unknown-linux-gnu.tar.gz
 RUN tar -xf /tmp/starship.tar.gz starship --to-stdout > /usr/local/bin/starship
@@ -25,7 +26,7 @@ FROM ${BASE_IMAGE}:${BASE_TAG}
 
 COPY --chown=root:root --chmod=0755 --from=initial /usr/local/bin/* /usr/local/bin/
 COPY --chown=root:root --chmod=0755 --from=initial /usr/local/share /usr/local/share
-COPY --chown=root:root --from=initial /etc/skel/.bashrc.d/ /root/.bashrc.d/
+COPY --chown=root:root --from=initial /etc/skel/ /root/
 COPY --chown=root:root --from=initial /etc/skel/.bashrc.d/ /etc/skel/.bashrc.d/
 
 RUN dnf install -y epel-release dnf-plugins-core \
@@ -38,12 +39,22 @@ RUN dnf install -y \
   cloud-init \
   fzf \
   less \
-  nmstate \
+  nmstate \ 
   pciutils \
   qemu-guest-agent \
   sudo \
   vim \
   yq \
+  rsync \
+  tcpdump \
+  tmux \
   && dnf clean all
 
-RUN echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN \
+  echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
+  && mkdir -p /etc/systemd/system/getty@tty1.service.d/ /etc/systemd/system/serial-getty@ttyS0.service.d/\
+  && printf '[Service]\nExecStart=\nExecStart=-/sbin/agetty --noreset --noclear --autologin root - ${TERM}\n' \
+  > /etc/systemd/system/getty@tty1.service.d/autologin.conf \
+  && printf '[Service]\nExecStart=\nExecStart=-/sbin/agetty --noreset --noclear --keep-baud 115200,57600,38400,9600 --autologin root - ${TERM}\n' \
+  > /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf \
+
